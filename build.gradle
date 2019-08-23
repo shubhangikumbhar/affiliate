@@ -1,0 +1,50 @@
+plugins {
+    id 'org.springframework.boot' version '2.1.6.RELEASE'
+    id 'java'
+    id 'maven'
+}
+
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'maven'
+
+group = 'com.vocera.cloud'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+
+    // Core Model
+    compile 'com.vocera.cloud:core-model:1.0.0.RELEASE'
+
+    // Swagger
+    implementation 'io.springfox:springfox-swagger2:2.9.2'
+    implementation 'io.springfox:springfox-swagger-ui:2.9.2'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    runtimeOnly 'org.postgresql:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Junit
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
+    testImplementation 'com.graphql-java:graphql-spring-boot-starter:5.0.2'
+    testCompile 'org.junit.platform:junit-platform-commons:1.4.0'
+
+    // Gson
+    implementation 'com.google.code.gson:gson:2.8.5'
+
+    // H2
+    testImplementation 'com.h2database:h2:1.4.199'
+}
+
+test {
+    useJUnitPlatform ()
+}
