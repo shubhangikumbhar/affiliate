@@ -8,14 +8,16 @@ package com.vocera.cloud.affiliateservice.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 import com.vocera.cloud.coremodel.constants.AffiliationStatus;
+import com.vocera.cloud.coremodel.constants.HttpHeader;
 import com.vocera.cloud.coremodel.model.Affiliation;
 import com.vocera.cloud.coremodel.model.ErrorResponse;
 import com.vocera.cloud.coremodel.model.Organization;
+import com.vocera.cloud.coremodel.model.PageResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,8 +27,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.lang.reflect.Type;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestMethodOrder(OrderAnnotation.class)
 class AffiliationControllerTest {
 
     @Autowired
@@ -136,5 +139,133 @@ class AffiliationControllerTest {
         ErrorResponse errorResponse = gson.fromJson(response.getResponse().getContentAsString(), ErrorResponse.class);
 
         assertEquals(errorResponse.getMessage(), "Error Raising Affiliation Request");
+    }
+
+    /**
+     * Filter through organizations within affiliation.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void defaultOrganizationFilter() throws Exception {
+        System.out.println("Test case for default filter on organizations within affiliation");
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/organization/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&query=");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 2l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+    }
+
+    /**
+     * Test case for filtering through affiliations
+     *
+     * @throws Exception
+     */
+    @Test
+    public void defaultAffiliationFilter() throws Exception {
+        System.out.println("Test case for default filter on affiliations");
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&query=");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 2l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+    }
+
+    /**
+     * Filter through active affiliations.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void filterActiveAffiliations() throws Exception {
+        System.out.println("Test case for filtering through active_affiliations");
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
+
+        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 2l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andReturn();
+
+        gson = new Gson();
+        Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
+        }.getType();
+        PageResponse<Affiliation> responseObj = gson.fromJson(response.getResponse().getContentAsString(),
+                apiResultType);
+        for (Affiliation affiliation : responseObj.getData())
+            assertEquals(affiliation.getStatus(), AffiliationStatus.ACTIVE_REQUEST);
+
+    }
+
+    /**
+     * Test case for fitlering affiliations which are affiliates.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void filterAffiliations() throws Exception {
+        System.out.println("Test case for filtering through_affiliations with AFFILIATE status(Those organizations " +
+                "which are affiliated).");
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=AFFILIATES");
+
+        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 2l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andReturn();
+
+        gson = new Gson();
+        Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
+        }.getType();
+        PageResponse<Affiliation> responseObj = gson.fromJson(response.getResponse().getContentAsString(),
+                apiResultType);
+        for (Affiliation affiliation : responseObj.getData())
+            assertEquals(affiliation.getStatus(), AffiliationStatus.AFFILIATED);
+
+    }
+
+    /**
+     * Filter through organizations which have an affiliation in affiliation request state.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void filterActiveAffiliationOrganizations() throws Exception {
+        System.out.println("Test case for filtering through active_affiliations");
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/organization/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
+
+        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 2l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andReturn();
+
     }
 }

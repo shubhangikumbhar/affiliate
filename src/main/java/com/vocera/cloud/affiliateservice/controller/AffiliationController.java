@@ -9,17 +9,25 @@ package com.vocera.cloud.affiliateservice.controller;
 import com.vocera.cloud.affiliateservice.exception.InvalidAffiliationException;
 import com.vocera.cloud.affiliateservice.service.AffiliateService;
 import com.vocera.cloud.affiliateservice.validator.AffiliationValidator;
+import com.vocera.cloud.coremodel.constants.FilterType;
+import com.vocera.cloud.coremodel.constants.HttpHeader;
 import com.vocera.cloud.coremodel.model.Affiliation;
+import com.vocera.cloud.coremodel.model.Organization;
+import com.vocera.cloud.coremodel.model.PageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
@@ -83,5 +91,56 @@ public class AffiliationController {
             affiliate = affiliateService.affiliate(affiliation);
         }
         return new ResponseEntity<>(affiliate, HttpStatus.OK);
+    }
+
+    /**
+     * Filter through affiliations.
+     *
+     * @param page
+     * @param offset
+     * @param query
+     * @param sort
+     * @param order
+     * @param filterType
+     * @param organizationId
+     * @return
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<PageResponse<Affiliation>> filterAffiliation(
+            @RequestParam("page") int page,
+            @RequestParam("offset") int offset,
+            @RequestParam(value = "query", required = false, defaultValue = "") String query,
+            @RequestParam(value = "sort", required = false, defaultValue = "") String sort,
+            @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
+            @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
+        return new ResponseEntity<>(affiliateService.filterAffiliation(page, offset, query, sort, order, filterType,
+                organizationId), HttpStatus.OK);
+    }
+
+
+    /**
+     * Filter through organizations in Affiliations.
+     *
+     * @param page
+     * @param offset
+     * @param query
+     * @param sort
+     * @param order
+     * @param filterType
+     * @param organizationId
+     * @return
+     */
+    @GetMapping("/organization/filter")
+    public ResponseEntity<PageResponse<Organization>> filterAffiliationOrganization(
+            @RequestParam("page") int page,
+            @RequestParam("offset") int offset,
+            @RequestParam(value = "query", required = false, defaultValue = "") String query,
+            @RequestParam(value = "sort", required = false, defaultValue = "") String sort,
+            @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
+            @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
+        return new ResponseEntity<>(affiliateService.filterAffiliationOrganization(page, offset, query, sort, order,
+                filterType, organizationId), HttpStatus.OK);
     }
 }
