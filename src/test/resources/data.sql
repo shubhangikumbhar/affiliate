@@ -118,10 +118,10 @@ INSERT INTO public.organization (id, created_at, updated_at, active, domain, hea
 -- Data for Name: affiliation; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by) VALUES (1, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'AFFILIATED', 2, 1, 2, 1);
-INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by) VALUES (2, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'ACTIVE_REQUEST', NULL, 1, 3, 1);
-INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by) VALUES (3, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'ACTIVE_REQUEST', NULL, 3, 2, 3);
-INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by) VALUES (4, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'REJECTED', 1, 3, 1, 3);
+INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by, active) VALUES (1, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'AFFILIATED', 2, 1, 2, 1, true);
+INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by, active) VALUES (2, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'ACTIVE_REQUEST', NULL, 1, 3, 1, true);
+INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by, active) VALUES (3, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'ACTIVE_REQUEST', NULL, 3, 2, 3, true);
+INSERT INTO public.affiliation (id, created_at, updated_at, status, actioned_by, affiliation_from, affiliation_with, requested_by, active) VALUES (4, '2019-08-19 12:24:46.472', '2019-08-19 12:24:46.472', 'REJECTED', 1, 3, 1, 3, true);
 
 
 --

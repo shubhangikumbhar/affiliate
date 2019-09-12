@@ -23,6 +23,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -114,6 +115,9 @@ public class AffiliationController {
             @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
             @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
+        LOGGER.info("Filter affiliation called on Page:{}, Offset:{}, query:{}, sort:{}, order:{}, filterType:{} by " +
+                "{}", page, offset, query, sort, order, filterType, organizationId);
+
         return new ResponseEntity<>(affiliateService.filterAffiliation(page, offset, query, sort, order, filterType,
                 organizationId), HttpStatus.OK);
     }
@@ -140,7 +144,58 @@ public class AffiliationController {
             @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
             @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
+        LOGGER.info("Filter organization called on Page:{}, Offset:{}, query:{}, sort:{}, order:{}, filterType:{} by " +
+                "{}", page, offset, query, sort, order, filterType, organizationId);
+
         return new ResponseEntity<>(affiliateService.filterAffiliationOrganization(page, offset, query, sort, order,
                 filterType, organizationId), HttpStatus.OK);
+    }
+
+    /**
+     * Approve an affiliation request.
+     *
+     * @param organizationId
+     * @param affiliateWith
+     * @return
+     */
+    @PostMapping("/approve/{organizationId}")
+    public ResponseEntity<Affiliation> approveAffiliation(
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            @PathVariable("organizationId") Long affiliateWith) {
+        LOGGER.info("Approve affiliation request called on {}", organizationId);
+        return new ResponseEntity<>(this.affiliateService.approveAffiliation(organizationId, affiliateWith),
+                HttpStatus.OK);
+    }
+
+    /**
+     * Reject an affiliation request.
+     *
+     * @param organizationId
+     * @param affiliateWith
+     * @return
+     */
+    @PostMapping("/reject/{organizationId}")
+    public ResponseEntity<Affiliation> rejectAffiliation(
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            @PathVariable("organizationId") Long affiliateWith) {
+        LOGGER.info("Reject affiliation request called on {}", organizationId);
+        return new ResponseEntity<>(this.affiliateService.rejectAffiliation(organizationId, affiliateWith),
+                HttpStatus.OK);
+    }
+
+    /**
+     * Cancel an affiliation request sent.
+     *
+     * @param organizationId
+     * @param affiliateWith
+     * @return
+     */
+    @PostMapping("/cancel/{organizationId}")
+    public ResponseEntity<Affiliation> cancelAffiliation(
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            @PathVariable("organizationId") Long affiliateWith) {
+        LOGGER.info("Cancel affiliation request called on {}", organizationId);
+        return new ResponseEntity<>(this.affiliateService.cancelAffiliation(organizationId, affiliateWith),
+                HttpStatus.OK);
     }
 }

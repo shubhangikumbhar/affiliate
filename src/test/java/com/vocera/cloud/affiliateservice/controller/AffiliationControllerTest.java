@@ -204,7 +204,6 @@ class AffiliationControllerTest {
                 .andExpect(jsonPath("$.data").hasJsonPath())
                 .andReturn();
 
-        gson = new Gson();
         Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
         }.getType();
         PageResponse<Affiliation> responseObj = gson.fromJson(response.getResponse().getContentAsString(),
@@ -236,7 +235,6 @@ class AffiliationControllerTest {
                 .andExpect(jsonPath("$.data").hasJsonPath())
                 .andReturn();
 
-        gson = new Gson();
         Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
         }.getType();
         PageResponse<Affiliation> responseObj = gson.fromJson(response.getResponse().getContentAsString(),
@@ -267,5 +265,167 @@ class AffiliationControllerTest {
                 .andExpect(jsonPath("$.data").hasJsonPath())
                 .andReturn();
 
+    }
+
+    /**
+     * Test case for successfully Approving an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void approveAffiliationRequestSuccessful() throws Exception {
+        System.out.println("Test case for successfully approving an affiliation request.");
+
+        initTestAffiliation(4l, 1l);
+        actionAffiliation("/affiliate/approve/4", 1l, AffiliationStatus.AFFILIATED);
+    }
+
+    /**
+     * Failure test case for successfully Approving an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void approveAffiliationRequestFailure() throws Exception {
+        System.out.println("Failure test case for successfully approving an affiliation request.");
+
+        actionAffiliationError("/affiliate/approve/5", 1l, AffiliationStatus.NONE);
+    }
+
+    /**
+     * Failure test case for same organization should not be able to approve affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void approveAffiliationRequestFailureSameOrg() throws Exception {
+        System.out.println("Failure test case for same organization should not be able to approve affiliation request" +
+                ".");
+
+        initTestAffiliation(6l, 1l);
+        actionAffiliationError("/affiliate/approve/1", 6l, AffiliationStatus.ACTIVE_REQUEST);
+    }
+
+    /**
+     * Test case for successfully Rejecting an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void rejectAffiliationRequestSuccessful() throws Exception {
+        System.out.println("Test case for successfully rejecting an affiliation request.");
+
+        initTestAffiliation(4l, 2l);
+        actionAffiliation("/affiliate/reject/4", 2l, AffiliationStatus.REJECTED);
+    }
+
+    /**
+     * Failure test case for successfully Approving an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void rejectAffiliationRequestFailure() throws Exception {
+        System.out.println("Failure test case for successfully approving an affiliation request.");
+
+        actionAffiliationError("/affiliate/reject/5", 2l, AffiliationStatus.NONE);
+    }
+
+    /**
+     * Failure test case for same organization should not be able to reject affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void rejectAffiliationRequestFailureSameOrg() throws Exception {
+        System.out.println("Failure test case for same organization should not be able to reject affiliation request.");
+
+        initTestAffiliation(6l, 2l);
+        actionAffiliationError("/affiliate/approve/2", 6l, AffiliationStatus.ACTIVE_REQUEST);
+    }
+
+    /**
+     * Test case for successfully Cancelling an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void cancelAffiliationRequestSuccessful() throws Exception {
+        System.out.println("Test case for successfully cancelling an affiliation request.");
+
+        initTestAffiliation(4l, 3l);
+        actionAffiliation("/affiliate/cancel/3", 4l, AffiliationStatus.CANCELLED);
+    }
+
+    /**
+     * Failure test case for successfully Approving an Affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void cancelAffiliationRequestFailure() throws Exception {
+        System.out.println("Failure test case for successfully approving an affiliation request.");
+
+        actionAffiliationError("/affiliate/cancel/5", 3l, AffiliationStatus.NONE);
+    }
+
+    /**
+     * Failure test case for other organization should not be able to cancel affiliation request.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void cancelAffiliationRequestFailureOtherOrg() throws Exception {
+        System.out.println("Failure test case for other organization should not be able to cancel affiliation request" +
+                ".");
+
+        initTestAffiliation(6l, 3l);
+
+        actionAffiliationError("/affiliate/approve/3", 6l, AffiliationStatus.ACTIVE_REQUEST);
+    }
+
+    public void initTestAffiliation(Long affiliationFromId, Long affiliationWithId) throws Exception {
+        Affiliation affiliationRequest = new Affiliation();
+
+        Organization affiliationWith = new Organization();
+        affiliationWith.setId(affiliationWithId);
+        affiliationRequest.setAffiliationWith(affiliationWith);
+
+        Organization affiliationFrom = new Organization();
+        affiliationFrom.setId(affiliationFromId);
+        affiliationRequest.setAffiliationFrom(affiliationFrom);
+
+        affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
+        MvcResult affiliationRequestMockResponse =
+                mockMvc.perform(post("/affiliate").content(gson.toJson(affiliationRequest))
+                        .contentType("application/json"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+        Affiliation affiliation = gson.fromJson(affiliationRequestMockResponse.getResponse().getContentAsString(),
+                Affiliation.class);
+
+        assertEquals(AffiliationStatus.ACTIVE_REQUEST, affiliation.getStatus());
+
+        System.out.println("Affiliation Request raised successfully.");
+    }
+
+    public void actionAffiliation(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
+        MvcResult response = mockMvc.perform(post(url)
+                .header(HttpHeader.ORGANIZATION_ID, orgHeader))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Affiliation affiliation = gson.fromJson(response.getResponse().getContentAsString(),
+                Affiliation.class);
+
+        assertEquals(expectedStatus, affiliation.getStatus());
+    }
+
+    public void actionAffiliationError(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
+        MvcResult response = mockMvc.perform(post(url)
+                .header(HttpHeader.ORGANIZATION_ID, orgHeader))
+                .andExpect(status().is4xxClientError())
+                .andReturn();
     }
 }

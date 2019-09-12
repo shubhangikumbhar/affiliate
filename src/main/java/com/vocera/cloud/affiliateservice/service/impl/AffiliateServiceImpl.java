@@ -6,6 +6,7 @@
 
 package com.vocera.cloud.affiliateservice.service.impl;
 
+import com.vocera.cloud.affiliateservice.exception.InvalidAffiliationException;
 import com.vocera.cloud.affiliateservice.repository.AffiliateRepository;
 import com.vocera.cloud.affiliateservice.service.AffiliateService;
 import com.vocera.cloud.coremodel.constants.AffiliationStatus;
@@ -20,6 +21,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -47,12 +52,13 @@ public class AffiliateServiceImpl implements AffiliateService {
      */
     @Override
     public Affiliation affiliate(Affiliation affiliationRequest) {
-        Optional<Affiliation> affiliationState = affiliateRepository.checkAffiliation(
+        Affiliation affiliationState = this.checkAffiliation(
                 affiliationRequest.getAffiliationFrom().getId(),
                 affiliationRequest.getAffiliationWith().getId());
-        if (affiliationState.isPresent()) {
-            return affiliationState.get();
+        if (affiliationState.getStatus() != AffiliationStatus.NONE) {
+            return affiliationState;
         } else {
+            affiliationRequest.setActive(true);
             return affiliateRepository.saveAndFlush(affiliationRequest);
         }
 
@@ -114,5 +120,99 @@ public class AffiliateServiceImpl implements AffiliateService {
         return new PageResponse<Organization>(pageResponse.getData().stream().map(affiliation -> {
             return affiliation.getAffiliationWith();
         }).collect(Collectors.toList()), page, offset, pageResponse.getTotalCount());
+    }
+
+    /**
+     * Check if two organizations are affiliated.
+     *
+     * @param affiliationFrom
+     * @param affiliationWith
+     * @return
+     */
+    @Override
+    public Affiliation checkAffiliation(Long affiliationFrom, Long affiliationWith) {
+        Optional<Affiliation> affiliationResponse = affiliateRepository.checkAffiliation(affiliationFrom,
+                affiliationWith);
+        if (affiliationResponse.isPresent()) {
+            return affiliationResponse.get();
+        } else {
+            Affiliation affiliation = new Affiliation();
+            affiliation.setStatus(AffiliationStatus.NONE);
+            affiliation.setAffiliationFrom(new Organization(affiliationFrom));
+            affiliation.setAffiliationWith(new Organization(affiliationWith));
+            return affiliation;
+        }
+    }
+
+    /**
+     * Check if there is an affiliation request in ACTIVE_REQUEST state.
+     * Check if AffiliatedWith organization is the same organization requesting for an approval.
+     * If yes, update the affiliation status to AFFILIATED.
+     * Else, return affiliation.
+     *
+     * @param organizationId
+     * @param requestingOrganizationId
+     * @return
+     */
+    @Override
+    @Transactional
+    public Affiliation approveAffiliation(Long organizationId, Long requestingOrganizationId) {
+        Affiliation affiliation = this.checkAffiliation(organizationId, requestingOrganizationId);
+
+        if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) && affiliation.getAffiliationWith().getId() == organizationId) {
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.AFFILIATED);
+            if (result > 0) {
+                return affiliateRepository.findById(affiliation.getId()).get();
+            }
+        }
+        throw new InvalidAffiliationException("Approve Request Failed", Arrays.asList("Invalid affiliation to approve !!"));
+    }
+
+    /**
+     * Check if there is an affiliation request in ACTIVE_REQUEST state.
+     * Check if AffiliatedWith organization is the same organization requesting for an approval.
+     * If yes, update the affiliation status to REJECTED.
+     * Else, return affiliation.
+     *
+     * @param organizationId
+     * @param requestingOrganizationId
+     * @return
+     */
+    @Override
+    @Transactional
+    public Affiliation rejectAffiliation(Long organizationId, Long requestingOrganizationId) {
+        Affiliation affiliation = this.checkAffiliation(organizationId, requestingOrganizationId);
+
+        if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) && affiliation.getAffiliationWith().getId() == organizationId) {
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.REJECTED);
+            if (result > 0) {
+                return affiliateRepository.findById(affiliation.getId()).get();
+            }
+        }
+        throw new InvalidAffiliationException("Reject Request Failed", Arrays.asList("Invalid affiliation to reject !!"));
+    }
+
+    /**
+     * Check if there is an affiliation request in ACTIVE_REQUEST state.
+     * Check if AffiliatedWith organization is the same organization requesting for an approval.
+     * If yes, update the affiliation status to CANCELLED.
+     * Else, return affiliation.
+     *
+     * @param organizationId
+     * @param affiliatedOrganizationId
+     * @return
+     */
+    @Override
+    @Transactional
+    public Affiliation cancelAffiliation(Long organizationId, Long affiliatedOrganizationId) {
+        Affiliation affiliation = this.checkAffiliation(organizationId, affiliatedOrganizationId);
+
+        if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) && affiliation.getAffiliationFrom().getId() == organizationId) {
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.CANCELLED);
+            if (result > 0) {
+                return affiliateRepository.findById(affiliation.getId()).get();
+            }
+        }
+        throw new InvalidAffiliationException("Cancel Request Failed", Arrays.asList("Invalid affiliation to cancel !!"));
     }
 }

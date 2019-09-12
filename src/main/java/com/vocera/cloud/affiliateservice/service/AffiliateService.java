@@ -53,4 +53,40 @@ public interface AffiliateService {
     PageResponse<Organization> filterAffiliationOrganization(int page, int offset, String query, String sort,
                                                              Sort.Direction order,
                                                              FilterType filterType, Long organizationId);
+
+    /**
+     * Check if two organizations are affiliated.
+     *
+     * @param org1
+     * @param org2
+     * @return
+     */
+    Affiliation checkAffiliation(Long org1, Long org2);
+
+    /**
+     * Approve an affiliation request.
+     *
+     * @param organizationId
+     * @param requestingOrganizationId
+     * @return
+     */
+    Affiliation approveAffiliation(Long organizationId, Long requestingOrganizationId);
+
+    /**
+     * Reject an affiliation request.
+     *
+     * @param organizationId
+     * @param requestingOrganizationId
+     * @return
+     */
+    Affiliation rejectAffiliation(Long organizationId, Long requestingOrganizationId);
+
+    /**
+     * Cancel an affiliation request sent.
+     *
+     * @param organizationId
+     * @param affiliatedOrganizationId
+     * @return
+     */
+    Affiliation cancelAffiliation(Long organizationId, Long affiliatedOrganizationId);
 }

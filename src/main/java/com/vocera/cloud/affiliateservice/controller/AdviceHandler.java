@@ -69,7 +69,6 @@ public class AdviceHandler extends ResponseEntityExceptionHandler {
                 FieldError fieldError = (FieldError) error;
                 details.add(fieldError.getDefaultMessage());
             }
-
         }
         ErrorResponse error = new ErrorResponse(ErrorCodes.INVALID_AFFILIATION_REQUEST.getMessage(), details,
                 ErrorCodes.INVALID_AFFILIATION_REQUEST.getCode());
