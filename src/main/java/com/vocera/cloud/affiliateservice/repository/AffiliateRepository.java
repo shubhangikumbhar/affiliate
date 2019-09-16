@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -37,16 +38,12 @@ public interface AffiliateRepository extends JpaRepository<Affiliation, Long> {
             "a.active=true")
     Optional<Affiliation> checkAffiliation(Long organization1, Long organization2);
 
-    @Query("select a from Affiliation a where a.affiliationFrom.id=?1 and a.status=?2 and a.active=true")
-    Page<Affiliation> affiliates(Long organizationId, AffiliationStatus status, Pageable pageable);
-
-    // TODO Organizations which can be affiliated
-    @Query("select a from Affiliation a where a.affiliationFrom.id=?1 and a.status=?2 and a.active=true")
-    Page<Affiliation> affiliated(Long organizationId, AffiliationStatus status, Pageable pageable);
-
-    @Query("select a from Affiliation a where (a.affiliationFrom.id=?1 or a.affiliationWith.id=?1) and a.status=?2 " +
-            "and a.active=true")
-    Page<Affiliation> activeRequests(Long organizationId, AffiliationStatus status, Pageable pageable);
+    @Query("select a from Affiliation a where " +
+            "(a.affiliationFrom.id=?1 and a.status IN ?2) " +
+            "or (a.affiliationWith.id=?1 and a.status IN ?3) " +
+            "and a.active=?4")
+    Page<Affiliation> filterAffiliation(Long organizationId, List<AffiliationStatus> statusFrom,
+                                        List<AffiliationStatus> statusWith, boolean active, Pageable pageable);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update Affiliation a set a.status=?2 where a.id=?1")

@@ -22,9 +22,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -80,17 +78,26 @@ public class AffiliateServiceImpl implements AffiliateService {
                                                        FilterType filterType, Long organizationId) {
         Page<Affiliation> affiliationPage;
         switch (filterType) {
-            // TODO Affiliated
             case UNAFFILIATED:
-                affiliationPage = affiliateRepository.affiliated(organizationId, AffiliationStatus.AFFILIATED,
+                affiliationPage = affiliateRepository.filterAffiliation(organizationId,
+                        Arrays.asList(AffiliationStatus.REMOVED),
+                        Arrays.asList(AffiliationStatus.CANCELLED, AffiliationStatus.REJECTED),
+                        true,
                         new PageRequest(page, offset));
                 break;
             case AFFILIATES:
-                affiliationPage = affiliateRepository.affiliates(organizationId, AffiliationStatus.AFFILIATED,
+                affiliationPage = affiliateRepository.filterAffiliation(organizationId,
+                        Arrays.asList(AffiliationStatus.AFFILIATED),
+                        Arrays.asList(AffiliationStatus.AFFILIATED),
+                        true,
                         new PageRequest(page, offset));
                 break;
             case ACTIVE_REQUESTS:
-                affiliationPage = affiliateRepository.activeRequests(organizationId, AffiliationStatus.ACTIVE_REQUEST,
+                affiliationPage = affiliateRepository.filterAffiliation(organizationId,
+                        Arrays.asList(AffiliationStatus.ACTIVE_REQUEST, AffiliationStatus.CANCELLED,
+                                AffiliationStatus.REJECTED),
+                        Arrays.asList(AffiliationStatus.ACTIVE_REQUEST),
+                        true,
                         new PageRequest(page, offset));
                 break;
             case ALL:
@@ -165,7 +172,8 @@ public class AffiliateServiceImpl implements AffiliateService {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
         }
-        throw new InvalidAffiliationException("Approve Request Failed", Arrays.asList("Invalid affiliation to approve !!"));
+        throw new InvalidAffiliationException("Approve Request Failed",
+                Arrays.asList("Invalid affiliation to approve !!"));
     }
 
     /**
@@ -189,7 +197,8 @@ public class AffiliateServiceImpl implements AffiliateService {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
         }
-        throw new InvalidAffiliationException("Reject Request Failed", Arrays.asList("Invalid affiliation to reject !!"));
+        throw new InvalidAffiliationException("Reject Request Failed",
+                Arrays.asList("Invalid affiliation to reject !!"));
     }
 
     /**
@@ -213,6 +222,7 @@ public class AffiliateServiceImpl implements AffiliateService {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
         }
-        throw new InvalidAffiliationException("Cancel Request Failed", Arrays.asList("Invalid affiliation to cancel !!"));
+        throw new InvalidAffiliationException("Cancel Request Failed",
+                Arrays.asList("Invalid affiliation to cancel !!"));
     }
 }
