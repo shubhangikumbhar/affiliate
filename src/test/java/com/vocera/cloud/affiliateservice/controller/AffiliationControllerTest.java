@@ -30,6 +30,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.lang.reflect.Type;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,23 +70,7 @@ class AffiliationControllerTest {
     public void successfulAffiliationRequest() throws Exception {
         System.out.println("Executing test case for raising an affiliation request");
 
-        Affiliation affiliationRequest = new Affiliation();
-
-        Organization affiliationWith = new Organization();
-        affiliationWith.setId(2);
-        affiliationRequest.setAffiliationWith(affiliationWith);
-
-        Organization affiliationFrom = new Organization();
-        affiliationFrom.setId(3);
-        affiliationRequest.setAffiliationFrom(affiliationFrom);
-
-        affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
-        MvcResult response = mockMvc.perform(post("/affiliate").content(gson.toJson(affiliationRequest))
-                .contentType("application/json"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-        System.out.println(response);
+        raiseAffiliationRequest(3l, 2l);
     }
 
     /**
@@ -276,7 +261,7 @@ class AffiliationControllerTest {
     public void approveAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully approving an affiliation request.");
 
-        initTestAffiliation(4l, 1l);
+        raiseAffiliationRequest(4l, 1l);
         actionAffiliation("/affiliate/approve/4", 1l, AffiliationStatus.AFFILIATED);
     }
 
@@ -299,10 +284,9 @@ class AffiliationControllerTest {
      */
     @Test
     public void approveAffiliationRequestFailureSameOrg() throws Exception {
-        System.out.println("Failure test case for same organization should not be able to approve affiliation request" +
-                ".");
+        System.out.println("Failure test case for same organization should not be able to approve affiliation request");
 
-        initTestAffiliation(6l, 1l);
+        raiseAffiliationRequest(6l, 1l);
         actionAffiliationError("/affiliate/approve/1", 6l, AffiliationStatus.ACTIVE_REQUEST);
     }
 
@@ -315,7 +299,7 @@ class AffiliationControllerTest {
     public void rejectAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully rejecting an affiliation request.");
 
-        initTestAffiliation(4l, 2l);
+        raiseAffiliationRequest(4l, 2l);
         actionAffiliation("/affiliate/reject/4", 2l, AffiliationStatus.REJECTED);
     }
 
@@ -340,7 +324,7 @@ class AffiliationControllerTest {
     public void rejectAffiliationRequestFailureSameOrg() throws Exception {
         System.out.println("Failure test case for same organization should not be able to reject affiliation request.");
 
-        initTestAffiliation(6l, 2l);
+        raiseAffiliationRequest(6l, 2l);
         actionAffiliationError("/affiliate/approve/2", 6l, AffiliationStatus.ACTIVE_REQUEST);
     }
 
@@ -353,7 +337,7 @@ class AffiliationControllerTest {
     public void cancelAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully cancelling an affiliation request.");
 
-        initTestAffiliation(4l, 3l);
+        raiseAffiliationRequest(4l, 3l);
         actionAffiliation("/affiliate/cancel/3", 4l, AffiliationStatus.CANCELLED);
     }
 
@@ -376,15 +360,14 @@ class AffiliationControllerTest {
      */
     @Test
     public void cancelAffiliationRequestFailureOtherOrg() throws Exception {
-        System.out.println("Failure test case for other organization should not be able to cancel affiliation request" +
-                ".");
+        System.out.println("Failure test case for other organization should not be able to cancel affiliation request");
 
-        initTestAffiliation(6l, 3l);
+        raiseAffiliationRequest(6l, 3l);
 
         actionAffiliationError("/affiliate/approve/3", 6l, AffiliationStatus.ACTIVE_REQUEST);
     }
 
-    public void initTestAffiliation(Long affiliationFromId, Long affiliationWithId) throws Exception {
+    public void raiseAffiliationRequest(Long affiliationFromId, Long affiliationWithId) throws Exception {
         Affiliation affiliationRequest = new Affiliation();
 
         Organization affiliationWith = new Organization();
@@ -410,7 +393,8 @@ class AffiliationControllerTest {
         System.out.println("Affiliation Request raised successfully.");
     }
 
-    public void actionAffiliation(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
+    public Affiliation actionAffiliation(
+            String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
         MvcResult response = mockMvc.perform(post(url)
                 .header(HttpHeader.ORGANIZATION_ID, orgHeader))
                 .andExpect(status().isOk())
@@ -420,6 +404,8 @@ class AffiliationControllerTest {
                 Affiliation.class);
 
         assertEquals(expectedStatus, affiliation.getStatus());
+
+        return affiliation;
     }
 
     public void actionAffiliationError(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
@@ -427,5 +413,187 @@ class AffiliationControllerTest {
                 .header(HttpHeader.ORGANIZATION_ID, orgHeader))
                 .andExpect(status().is4xxClientError())
                 .andReturn();
+    }
+
+    /**
+     * Test case for affiliation being revoked from the organization which has requested for affiliation.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRevokeAffiliationFrom() throws Exception {
+        System.out.println("Test case for affiliation being revoked from the organization which has requested for " +
+                "affiliation.");
+        this.raiseAffiliationRequest(10l, 18l);
+        this.actionAffiliation("/affiliate/approve/10", 18l, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/18", 10l, AffiliationStatus.REVOKED_FROM);
+    }
+
+    /**
+     * Test case for affiliation being revoked from the organization which has been requested for affiliation.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRevokeAffiliationTo() throws Exception {
+        System.out.println("Test case for affiliation being revoked from the organization which has been requested " +
+                "for affiliation.");
+        this.raiseAffiliationRequest(10l, 19l);
+        this.actionAffiliation("/affiliate/approve/10", 19l, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/10", 19l, AffiliationStatus.REVOKED_TO);
+    }
+
+    /**
+     * Failure test case for affiliation being revoked from the organization which has been requested for affiliation.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRevokeAffiliationToFailure() throws Exception {
+        System.out.println("Failure test case for affiliation being revoked from the organization which has been " +
+                "requested for affiliation.");
+
+        mockMvc.perform(post("/affiliate/revoke/11")
+                .header(HttpHeader.ORGANIZATION_ID, 19l))
+                .andExpect(status().is4xxClientError());
+    }
+
+    /**
+     * Two organizations are already affiliated.
+     * The organization which has requested affiliation, has revoked the affiliation.
+     * In this case, the organization which has revoked the organization, should see the other organization in
+     * unaffiliated organizations.
+     * In the following test case organization with id 10 (affiliated_from) is affiliated with id 20 (affiliated_with).
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRevokeFrom() throws Exception {
+        System.out.println("Test case for checking if organization which is revoked is visible in Unaffiliation " +
+                "organizations for organization which has revoked the affiliation");
+        this.raiseAffiliationRequest(10l, 20l);
+        this.actionAffiliation("/affiliate/approve/10", 20l, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/20", 10l, AffiliationStatus.REVOKED_FROM);
+
+        // Check if organization with id 20 is visible in unaffiliated list for organization 10
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=UNAFFILIATED");
+        filterURIBuilder.append("&query=LKQ");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 10l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+
+        filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
+        filterURIBuilder.append("&query=Ball");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 20l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+    }
+
+    /**
+     * Two organizations are already affiliated.
+     * The organization which has approved affiliation, has revoked the affiliation.
+     * In this case, the organization which has revoked the organization, should see the other organization in
+     * unaffiliated organizations.
+     * In the following test case organization with id 10 (affiliated_from) is affiliated with id 21 (affiliated_with).
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testRevokeWith() throws Exception {
+        System.out.println("Test case for checking if organization which is revoked is visible in Unaffiliation " +
+                "organizations for organization which has revoked the affiliation");
+        this.raiseAffiliationRequest(10l, 21l);
+        this.actionAffiliation("/affiliate/approve/10", 21l, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/10", 21l, AffiliationStatus.REVOKED_TO);
+
+        // Check if organization with id 21 is visible in unaffiliated list for organization 10
+
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=UNAFFILIATED");
+        filterURIBuilder.append("&query=Ball");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 21l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+
+        filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
+        filterURIBuilder.append("&query=J.M. Smucker");
+
+        mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, 10l))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath());
+    }
+
+    /**
+     * Test case for checking Ascending order for organization name.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void orderByName() throws Exception {
+        System.out.println("Executing test case for checking ascending order on organization name.");
+        StringBuilder filterURIBuilder = new StringBuilder();
+        filterURIBuilder.append("/affiliate/filter?");
+        filterURIBuilder.append("page=0");
+        filterURIBuilder.append("&offset=1");
+        filterURIBuilder.append("&filterType=UNAFFILIATED");
+
+        final long organizationId = 10l;
+
+        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
+                .header(HttpHeader.ORGANIZATION_ID, organizationId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath()).andReturn();
+
+        Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
+        }.getType();
+        PageResponse<Affiliation> affiliationPageResponse = gson.fromJson(response.getResponse().getContentAsString(),
+                apiResultType);
+        String previous = "";
+        for (Affiliation affiliation : affiliationPageResponse.getData()) {
+            if (!"".equals(previous)) {
+                if (affiliation.getAffiliationFrom().getId() == organizationId) {
+                    assertTrue(affiliation.getAffiliationWith().getName().compareTo(previous) < 0);
+                    previous = affiliation.getAffiliationWith().getName();
+                } else if (affiliation.getAffiliationWith().getId() == organizationId) {
+                    assertTrue(affiliation.getAffiliationFrom().getName().compareTo(previous) < 0);
+                    previous = affiliation.getAffiliationFrom().getName();
+                } else {
+                    // Fail test case since filter is not working properly
+                    assertTrue(false);
+                }
+            } else {
+                if (affiliation.getAffiliationFrom().getId() == organizationId) {
+                    previous = affiliation.getAffiliationWith().getName();
+                } else if (affiliation.getAffiliationWith().getId() == organizationId) {
+                    previous = affiliation.getAffiliationFrom().getName();
+                } else {
+                    // Fail test case since filter is not working properly
+                    assertTrue(false);
+                }
+            }
+        }
     }
 }

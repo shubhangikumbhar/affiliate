@@ -8,13 +8,11 @@ package com.vocera.cloud.affiliateservice.repository;
 
 import com.vocera.cloud.coremodel.constants.AffiliationStatus;
 import com.vocera.cloud.coremodel.model.Affiliation;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -22,7 +20,7 @@ import java.util.Optional;
  *
  * @author Rohit Phatak
  */
-public interface AffiliateRepository extends JpaRepository<Affiliation, Long> {
+public interface AffiliateRepository extends JpaRepository<Affiliation, Long>, JpaSpecificationExecutor<Affiliation> {
 
     /**
      * Check if two organizations are Affiliated.
@@ -38,13 +36,13 @@ public interface AffiliateRepository extends JpaRepository<Affiliation, Long> {
             "a.active=true")
     Optional<Affiliation> checkAffiliation(Long organization1, Long organization2);
 
-    @Query("select a from Affiliation a where " +
-            "(a.affiliationFrom.id=?1 and a.status IN ?2) " +
-            "or (a.affiliationWith.id=?1 and a.status IN ?3) " +
-            "and a.active=?4")
-    Page<Affiliation> filterAffiliation(Long organizationId, List<AffiliationStatus> statusFrom,
-                                        List<AffiliationStatus> statusWith, boolean active, Pageable pageable);
-
+    /**
+     * Update affiliation status.
+     *
+     * @param affiliationId
+     * @param affiliationStatus
+     * @return
+     */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update Affiliation a set a.status=?2 where a.id=?1")
     int updateStatus(Long affiliationId, AffiliationStatus affiliationStatus);

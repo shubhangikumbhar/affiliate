@@ -7,6 +7,7 @@
 package com.vocera.cloud.affiliateservice.service;
 
 import com.vocera.cloud.coremodel.constants.FilterType;
+import com.vocera.cloud.coremodel.constants.OrderableColumn;
 import com.vocera.cloud.coremodel.model.Affiliation;
 import com.vocera.cloud.coremodel.model.Organization;
 import com.vocera.cloud.coremodel.model.PageResponse;
@@ -36,23 +37,28 @@ public interface AffiliateService {
      * @param sort
      * @param order
      * @param filterType
+     * @param organizationId
      * @return
      */
-    PageResponse<Affiliation> filterAffiliation(int page, int offset, String query, String sort, Sort.Direction order,
-                                                FilterType filterType, Long organizationId);
+    PageResponse<Affiliation> filterAffiliation(
+            int page, int offset, String query, OrderableColumn sort, Sort.Direction order,
+            FilterType filterType, Long organizationId);
 
     /**
+     * Filter through organizations in affiliation.
+     *
      * @param page
      * @param offset
      * @param query
      * @param sort
      * @param order
      * @param filterType
+     * @param organizationId
      * @return
      */
-    PageResponse<Organization> filterAffiliationOrganization(int page, int offset, String query, String sort,
-                                                             Sort.Direction order,
-                                                             FilterType filterType, Long organizationId);
+    PageResponse<Organization> filterAffiliationOrganization(
+            int page, int offset, String query, OrderableColumn sort, Sort.Direction order,
+            FilterType filterType, Long organizationId);
 
     /**
      * Check if two organizations are affiliated.
@@ -89,4 +95,13 @@ public interface AffiliateService {
      * @return
      */
     Affiliation cancelAffiliation(Long organizationId, Long affiliatedOrganizationId);
+
+    /**
+     * Cancel an affiliation request sent.
+     *
+     * @param organizationId
+     * @param affiliatedOrganizationId
+     * @return
+     */
+    Affiliation revokeAffiliation(Long organizationId, Long affiliatedOrganizationId);
 }

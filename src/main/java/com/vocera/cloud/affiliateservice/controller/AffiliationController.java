@@ -11,6 +11,7 @@ import com.vocera.cloud.affiliateservice.service.AffiliateService;
 import com.vocera.cloud.affiliateservice.validator.AffiliationValidator;
 import com.vocera.cloud.coremodel.constants.FilterType;
 import com.vocera.cloud.coremodel.constants.HttpHeader;
+import com.vocera.cloud.coremodel.constants.OrderableColumn;
 import com.vocera.cloud.coremodel.model.Affiliation;
 import com.vocera.cloud.coremodel.model.Organization;
 import com.vocera.cloud.coremodel.model.PageResponse;
@@ -111,8 +112,8 @@ public class AffiliationController {
             @RequestParam("page") int page,
             @RequestParam("offset") int offset,
             @RequestParam(value = "query", required = false, defaultValue = "") String query,
-            @RequestParam(value = "sort", required = false, defaultValue = "") String sort,
-            @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
+            @RequestParam(value = "sort", required = false, defaultValue = "NAME") OrderableColumn sort,
+            @RequestParam(value = "order", required = false, defaultValue = "ASC") Sort.Direction order,
             @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
         LOGGER.info("Filter affiliation called on Page:{}, Offset:{}, query:{}, sort:{}, order:{}, filterType:{} by " +
@@ -140,8 +141,8 @@ public class AffiliationController {
             @RequestParam("page") int page,
             @RequestParam("offset") int offset,
             @RequestParam(value = "query", required = false, defaultValue = "") String query,
-            @RequestParam(value = "sort", required = false, defaultValue = "") String sort,
-            @RequestParam(value = "order", required = false, defaultValue = "") Sort.Direction order,
+            @RequestParam(value = "sort", required = false, defaultValue = "NAME") OrderableColumn sort,
+            @RequestParam(value = "order", required = false, defaultValue = "ASC") Sort.Direction order,
             @RequestParam(value = "filterType", required = false, defaultValue = "ALL") FilterType filterType,
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId) {
         LOGGER.info("Filter organization called on Page:{}, Offset:{}, query:{}, sort:{}, order:{}, filterType:{} by " +
@@ -162,7 +163,7 @@ public class AffiliationController {
     public ResponseEntity<Affiliation> approveAffiliation(
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
             @PathVariable("organizationId") Long affiliateWith) {
-        LOGGER.info("Approve affiliation request called on {}", organizationId);
+        LOGGER.info("Approve affiliation request called on {} by {}", affiliateWith, organizationId);
         return new ResponseEntity<>(this.affiliateService.approveAffiliation(organizationId, affiliateWith),
                 HttpStatus.OK);
     }
@@ -178,7 +179,7 @@ public class AffiliationController {
     public ResponseEntity<Affiliation> rejectAffiliation(
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
             @PathVariable("organizationId") Long affiliateWith) {
-        LOGGER.info("Reject affiliation request called on {}", organizationId);
+        LOGGER.info("Reject affiliation request called on {} by {}", affiliateWith, organizationId);
         return new ResponseEntity<>(this.affiliateService.rejectAffiliation(organizationId, affiliateWith),
                 HttpStatus.OK);
     }
@@ -194,8 +195,24 @@ public class AffiliationController {
     public ResponseEntity<Affiliation> cancelAffiliation(
             @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
             @PathVariable("organizationId") Long affiliateWith) {
-        LOGGER.info("Cancel affiliation request called on {}", organizationId);
+        LOGGER.info("Cancel affiliation request called on {} by {}", affiliateWith, organizationId);
         return new ResponseEntity<>(this.affiliateService.cancelAffiliation(organizationId, affiliateWith),
+                HttpStatus.OK);
+    }
+
+    /**
+     * Revoke an affiliation.
+     *
+     * @param organizationId
+     * @param affiliateWith
+     * @return
+     */
+    @PostMapping("/revoke/{organizationId}")
+    public ResponseEntity<Affiliation> revokeAffiliation(
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            @PathVariable("organizationId") Long affiliateWith) {
+        LOGGER.info("Revoke affiliation request called on {} by {}", affiliateWith, organizationId);
+        return new ResponseEntity<>(this.affiliateService.revokeAffiliation(organizationId, affiliateWith),
                 HttpStatus.OK);
     }
 }
