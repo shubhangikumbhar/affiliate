@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class InvalidAffiliationException extends RuntimeException {
 
-    private List<Object> errors;
+    private final List<Object> errors;
 
     /**
      * Constructor.
@@ -30,9 +30,5 @@ public class InvalidAffiliationException extends RuntimeException {
 
     public List<Object> getErrors() {
         return errors;
-    }
-
-    public void setErrors(List<Object> errors) {
-        this.errors = errors;
     }
 }

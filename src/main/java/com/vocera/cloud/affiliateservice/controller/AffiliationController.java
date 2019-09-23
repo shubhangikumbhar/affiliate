@@ -80,8 +80,10 @@ public class AffiliationController {
      * @throws Exception
      */
     @PostMapping("")
-    public ResponseEntity<Affiliation> affiliate(@Valid @RequestBody Affiliation affiliation,
-                                                 BindingResult bindingResult) throws Exception {
+    public ResponseEntity<Affiliation> affiliate(
+            @Valid @RequestBody Affiliation affiliation,
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            BindingResult bindingResult) throws Exception {
 
         Affiliation affiliate;
         if (bindingResult.hasErrors()) {
@@ -90,7 +92,7 @@ public class AffiliationController {
         } else {
             LOGGER.info("Affiliation Requested from {} to {}", affiliation.getAffiliationFrom().getId(),
                     affiliation.getAffiliationWith().getId());
-            affiliate = affiliateService.affiliate(affiliation);
+            affiliate = affiliateService.affiliate(affiliation, organizationId);
         }
         return new ResponseEntity<>(affiliate, HttpStatus.OK);
     }

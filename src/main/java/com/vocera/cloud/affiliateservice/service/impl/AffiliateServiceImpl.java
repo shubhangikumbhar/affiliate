@@ -39,15 +39,23 @@ public class AffiliateServiceImpl implements AffiliateService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AffiliateServiceImpl.class);
 
     private final List<AffiliationStatus> UNAFFILIATED_FROM = Arrays.asList(AffiliationStatus.REMOVED,
-            AffiliationStatus.REVOKED_FROM);
-    private final List<AffiliationStatus> UNAFFILIATED_WITH = Arrays.asList(AffiliationStatus.CANCELLED,
+            AffiliationStatus.REVOKED_FROM, AffiliationStatus.CANCELLED);
+    private final List<AffiliationStatus> UNAFFILIATED_WITH = Arrays.asList(
             AffiliationStatus.REJECTED, AffiliationStatus.REMOVED, AffiliationStatus.REVOKED_TO);
     private final List<AffiliationStatus> AFFILIATES_FROM = Arrays.asList(AffiliationStatus.AFFILIATED);
     private final List<AffiliationStatus> AFFILIATES_WITH = Arrays.asList(AffiliationStatus.AFFILIATED);
     private final List<AffiliationStatus> ACTIVE_REQUEST_FROM = Arrays.asList(AffiliationStatus.ACTIVE_REQUEST,
-            AffiliationStatus.CANCELLED, AffiliationStatus.REJECTED, AffiliationStatus.REVOKED_TO);
+            AffiliationStatus.REJECTED, AffiliationStatus.REVOKED_TO);
     private final List<AffiliationStatus> ACTIVE_REQUEST_WITH = Arrays.asList(AffiliationStatus.ACTIVE_REQUEST,
+            AffiliationStatus.CANCELLED, AffiliationStatus.REVOKED_FROM);
+    private final List<AffiliationStatus> ELEGIBLE_FOR_REMOVE = Arrays.asList(AffiliationStatus.CANCELLED,
+            AffiliationStatus.REJECTED, AffiliationStatus.REVOKED_FROM, AffiliationStatus.REVOKED_TO,
+            AffiliationStatus.UNREGISTERED_TO, AffiliationStatus.UNREGISTERED_FROM);
+
+    private final List<AffiliationStatus> AFFILIATION_REQUEST_CHECK_FROM = Arrays.asList(AffiliationStatus.CANCELLED,
             AffiliationStatus.REVOKED_FROM);
+    private final List<AffiliationStatus> AFFILIATION_REQUEST_CHECK_WITH = Arrays.asList(AffiliationStatus.REJECTED,
+            AffiliationStatus.REVOKED_TO);
 
     private AffiliateRepository affiliateRepository;
 
@@ -62,15 +70,27 @@ public class AffiliateServiceImpl implements AffiliateService {
      * @return
      */
     @Override
-    public Affiliation affiliate(Affiliation affiliationRequest) {
+    @Transactional
+    public Affiliation affiliate(Affiliation affiliationRequest, Long organizationId) {
         Affiliation affiliationState = this.checkAffiliation(
                 affiliationRequest.getAffiliationFrom().getId(),
                 affiliationRequest.getAffiliationWith().getId());
-        if (affiliationState.getStatus() != AffiliationStatus.NONE) {
+        if (affiliationState.getStatus() != AffiliationStatus.NONE &&
+                !(organizationId == affiliationState.getAffiliationWith().getId() &&
+                        AFFILIATION_REQUEST_CHECK_WITH.contains(affiliationState.getStatus())) &&
+                !(organizationId == affiliationState.getAffiliationFrom().getId() &&
+                        AFFILIATION_REQUEST_CHECK_FROM.contains(affiliationState.getStatus()))) {
             return affiliationState;
         } else {
+            if ((AFFILIATION_REQUEST_CHECK_WITH.contains(affiliationState.getStatus()) &&
+                    organizationId == affiliationState.getAffiliationWith().getId()) ||
+                    (AFFILIATION_REQUEST_CHECK_FROM.contains(affiliationState.getStatus()) &&
+                            organizationId == affiliationState.getAffiliationFrom().getId())) {
+                this.removeAffiliation(affiliationRequest.getAffiliationFrom().getId(),
+                        affiliationRequest.getAffiliationWith().getId());
+            }
             affiliationRequest.setActive(true);
-            return affiliateRepository.saveAndFlush(affiliationRequest);
+            return this.affiliateRepository.saveAndFlush(affiliationRequest);
         }
 
     }
@@ -179,7 +199,7 @@ public class AffiliateServiceImpl implements AffiliateService {
 
         if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) &&
                 affiliation.getAffiliationWith().getId() == organizationId) {
-            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.AFFILIATED);
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.AFFILIATED, true);
             if (result > 0) {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
@@ -205,7 +225,7 @@ public class AffiliateServiceImpl implements AffiliateService {
 
         if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) &&
                 affiliation.getAffiliationWith().getId() == organizationId) {
-            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.REJECTED);
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.REJECTED, true);
             if (result > 0) {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
@@ -231,7 +251,7 @@ public class AffiliateServiceImpl implements AffiliateService {
 
         if (affiliation.getStatus().equals(AffiliationStatus.ACTIVE_REQUEST) &&
                 affiliation.getAffiliationFrom().getId() == organizationId) {
-            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.CANCELLED);
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.CANCELLED, true);
             if (result > 0) {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }
@@ -258,7 +278,29 @@ public class AffiliateServiceImpl implements AffiliateService {
         if (affiliation.getStatus().equals(AffiliationStatus.AFFILIATED)) {
             int result = affiliateRepository.updateStatus(affiliation.getId(),
                     (affiliation.getAffiliationFrom().getId() == organizationId) ? AffiliationStatus.REVOKED_FROM :
-                            AffiliationStatus.REVOKED_TO);
+                            AffiliationStatus.REVOKED_TO, true);
+            if (result > 0) {
+                return affiliateRepository.findById(affiliation.getId()).get();
+            }
+        }
+        throw new InvalidAffiliationException("Revoke Request Failed",
+                Arrays.asList("Invalid affiliation to revoke !!"));
+    }
+
+    /**
+     * Set the affiliation status to REMOVED and set active = false.
+     *
+     * @param organizationId
+     * @param affiliatedOrganizationId
+     * @return
+     */
+    @Override
+    @Transactional
+    public Affiliation removeAffiliation(Long organizationId, Long affiliatedOrganizationId) {
+        Affiliation affiliation = this.checkAffiliation(organizationId, affiliatedOrganizationId);
+
+        if (ELEGIBLE_FOR_REMOVE.contains(affiliation.getStatus())) {
+            int result = affiliateRepository.updateStatus(affiliation.getId(), AffiliationStatus.REMOVED, false);
             if (result > 0) {
                 return affiliateRepository.findById(affiliation.getId()).get();
             }

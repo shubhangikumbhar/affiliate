@@ -37,13 +37,13 @@ public interface AffiliateRepository extends JpaRepository<Affiliation, Long>, J
     Optional<Affiliation> checkAffiliation(Long organization1, Long organization2);
 
     /**
-     * Update affiliation status.
+     * Update affiliation status and active.
      *
      * @param affiliationId
      * @param affiliationStatus
      * @return
      */
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("update Affiliation a set a.status=?2 where a.id=?1")
-    int updateStatus(Long affiliationId, AffiliationStatus affiliationStatus);
+    @Query("update Affiliation a set a.status=?2, a.active=?3 where a.id=?1")
+    int updateStatus(Long affiliationId, AffiliationStatus affiliationStatus, boolean active);
 }

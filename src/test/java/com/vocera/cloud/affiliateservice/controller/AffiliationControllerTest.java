@@ -9,6 +9,7 @@ package com.vocera.cloud.affiliateservice.controller;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import com.vocera.cloud.affiliateservice.constant.ErrorCodes;
 import com.vocera.cloud.coremodel.constants.AffiliationStatus;
 import com.vocera.cloud.coremodel.constants.HttpHeader;
 import com.vocera.cloud.coremodel.model.Affiliation;
@@ -94,7 +95,9 @@ class AffiliationControllerTest {
         affiliationRequest.setAffiliationFrom(affiliationFrom);
 
         affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
-        MvcResult response = mockMvc.perform(post("/affiliate").content(gson.toJson(affiliationRequest))
+        MvcResult response = mockMvc.perform(post("/affiliate")
+                .header(HttpHeader.ORGANIZATION_ID, 2l)
+                .content(gson.toJson(affiliationRequest))
                 .contentType("application/json"))
                 .andExpect(status().isOk())
                 .andReturn();
@@ -115,7 +118,9 @@ class AffiliationControllerTest {
         Affiliation affiliationRequest = new Affiliation();
 
         affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
-        MvcResult response = mockMvc.perform(post("/affiliate").content(gson.toJson(affiliationRequest))
+        MvcResult response = mockMvc.perform(post("/affiliate")
+                .header(HttpHeader.ORGANIZATION_ID, 1l)
+                .content(gson.toJson(affiliationRequest))
                 .contentType("application/json"))
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.message").hasJsonPath())
@@ -123,7 +128,7 @@ class AffiliationControllerTest {
 
         ErrorResponse errorResponse = gson.fromJson(response.getResponse().getContentAsString(), ErrorResponse.class);
 
-        assertEquals(errorResponse.getMessage(), "Error Raising Affiliation Request");
+        assertEquals(ErrorCodes.INVALID_REQUEST.getCode(), errorResponse.getCode());
     }
 
     /**
@@ -380,7 +385,9 @@ class AffiliationControllerTest {
 
         affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
         MvcResult affiliationRequestMockResponse =
-                mockMvc.perform(post("/affiliate").content(gson.toJson(affiliationRequest))
+                mockMvc.perform(post("/affiliate")
+                        .header(HttpHeader.ORGANIZATION_ID, affiliationFromId)
+                        .content(gson.toJson(affiliationRequest))
                         .contentType("application/json"))
                         .andExpect(status().isOk())
                         .andReturn();
@@ -595,5 +602,75 @@ class AffiliationControllerTest {
                 }
             }
         }
+    }
+
+    /**
+     * Affiliation request has been raised from OrganizationA to OrganizationB.
+     * Then request is cancelled from OrganizationA.
+     * Now OrganizationA can see OrganizarionB in Unaffiliated Organizations.
+     * OrganizationA wants to resend affiliation request to OrganizationB.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void reraiseAffiliationCancelled() throws Exception {
+        System.out.println("Reraise affiliation request after cancelled");
+
+        raiseAffiliationRequest(15l, 16l);
+        actionAffiliation("/affiliate/cancel/16", 15l, AffiliationStatus.CANCELLED);
+        raiseAffiliationRequest(15l, 16l);
+    }
+
+    /**
+     * Affiliation request has been raised from OrganizationA to OrganizationB.
+     * Then request is Rejected from OrganizationB.
+     * Now OrganizationA can see OrganizationB in Active Requests.
+     * OrganizationB wants to resend affiliation request to OrganizationA.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void reraiseAffiliationRejected() throws Exception {
+        System.out.println("Reraise affiliation request after cancelled");
+
+        raiseAffiliationRequest(15l, 17l);
+        actionAffiliation("/affiliate/reject/15", 17l, AffiliationStatus.REJECTED);
+        raiseAffiliationRequest(17l, 15l);
+    }
+
+    /**
+     * Affiliation request has been raised from OrganizationA to OrganizationB.
+     * Then request is Accepted by OrganizationB and both organizations are Affiliated.
+     * Now OrganizationA revokes affiliation with OrganizationB and OrganizationB is seen in Active Requests.
+     * OrganizationB wants to resend affiliation request to OrganizationA.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void reraiseAffiliationRevokeFrom() throws Exception {
+        System.out.println("Reraise affiliation request after cancelled");
+
+        raiseAffiliationRequest(15l, 18l);
+        actionAffiliation("/affiliate/approve/15", 18l, AffiliationStatus.AFFILIATED);
+        actionAffiliation("/affiliate/revoke/18", 15l, AffiliationStatus.REVOKED_FROM);
+        raiseAffiliationRequest(15l, 18l);
+    }
+
+    /**
+     * Affiliation request has been raised from OrganizationA to OrganizationB.
+     * Then request is Accepted by OrganizationB and both organizations are Affiliated.
+     * Now OrganizationB revokes affiliation with OrganizationA and OrganizationA is seen in Active Requests.
+     * OrganizationB wants to resend affiliation request to OrganizationA.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void reraiseAffiliationRevokeTo() throws Exception {
+        System.out.println("Reraise affiliation request after cancelled");
+
+        raiseAffiliationRequest(15l, 19l);
+        actionAffiliation("/affiliate/approve/15", 19l, AffiliationStatus.AFFILIATED);
+        actionAffiliation("/affiliate/revoke/15", 19l, AffiliationStatus.REVOKED_TO);
+        raiseAffiliationRequest(19l, 15l);
     }
 }

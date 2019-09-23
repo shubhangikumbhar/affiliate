@@ -26,7 +26,7 @@ public interface AffiliateService {
      * @param affiliation
      * @return
      */
-    Affiliation affiliate(Affiliation affiliation);
+    Affiliation affiliate(Affiliation affiliation, Long organizationId);
 
     /**
      * Filter through affiliates.
@@ -104,4 +104,14 @@ public interface AffiliateService {
      * @return
      */
     Affiliation revokeAffiliation(Long organizationId, Long affiliatedOrganizationId);
+
+    /**
+     * Remove an affiliation between two organizations.
+     * This will set the affiliation to active false.
+     *
+     * @param organizationId
+     * @param affiliatedOrganizationId
+     * @return
+     */
+    Affiliation removeAffiliation(Long organizationId, Long affiliatedOrganizationId);
 }

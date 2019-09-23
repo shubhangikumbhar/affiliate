@@ -66,7 +66,7 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for successful affiliation.");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST), 1l);
 
         assertTrue(affiliationResponse.getId() > 0);
     }
@@ -79,9 +79,9 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for affiliation already present");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST), 1l);
         Affiliation affiliationResponseDup = affiliateService.affiliate(
-                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(1l, 2l, AffiliationStatus.ACTIVE_REQUEST), 1l);
 
         assertEquals(affiliationResponse.getId(), affiliationResponseDup.getId());
     }
@@ -94,7 +94,7 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for checking if organizations are already affiliated.");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(2l, 3l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(2l, 3l, AffiliationStatus.ACTIVE_REQUEST), 2l);
         Affiliation affiliation = this.affiliateService.checkAffiliation(2l, 3l);
         assertEquals(AffiliationStatus.ACTIVE_REQUEST, affiliation.getStatus());
     }
@@ -119,7 +119,7 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for approving an affiliation request");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST), 3l);
         Affiliation affiliation = this.affiliateService.approveAffiliation(2l, 3l);
         assertEquals(AffiliationStatus.AFFILIATED, affiliation.getStatus());
     }
@@ -144,7 +144,7 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for rejecting an affiliation request");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST), 3l);
         Affiliation affiliation = this.affiliateService.rejectAffiliation(2l, 3l);
         assertEquals(AffiliationStatus.REJECTED, affiliation.getStatus());
     }
@@ -169,7 +169,7 @@ class AffiliateServiceImplTest {
         System.out.println("Test case for cancelling an affiliation request");
 
         Affiliation affiliationResponse = affiliateService.affiliate(
-                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST));
+                this.createAffiliation(3l, 2l, AffiliationStatus.ACTIVE_REQUEST), 3l);
         Affiliation affiliation = this.affiliateService.cancelAffiliation(3l, 2l);
         assertEquals(AffiliationStatus.CANCELLED, affiliation.getStatus());
     }
@@ -200,6 +200,19 @@ class AffiliateServiceImplTest {
         affiliation.setAffiliationWith(new Organization(org2));
         affiliation.setStatus(status);
         return affiliation;
+    }
+
+    @Test
+    public void testAffiliationRequestAfterCancellation() {
+        System.out.println("Test case for raising an affiliation request after a request is cancelled.");
+
+        Affiliation firstAffRequest = this.createAffiliation(4l, 5l, AffiliationStatus.ACTIVE_REQUEST);
+        this.affiliateService.affiliate(firstAffRequest, 4l);
+        assertEquals(AffiliationStatus.ACTIVE_REQUEST, firstAffRequest.getStatus());
+        Affiliation affiliation = this.affiliateService.cancelAffiliation(4l, 5l);
+        assertEquals(AffiliationStatus.CANCELLED, affiliation.getStatus());
+        Affiliation affRequest = this.createAffiliation(5l, 4l, AffiliationStatus.ACTIVE_REQUEST);
+        assertEquals(AffiliationStatus.ACTIVE_REQUEST, affRequest.getStatus());
     }
 
 }
