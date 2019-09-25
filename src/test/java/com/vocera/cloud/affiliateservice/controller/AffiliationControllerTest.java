@@ -29,6 +29,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.lang.reflect.Type;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,7 +62,7 @@ class AffiliationControllerTest {
      * Initialize mockMvc.
      */
     @BeforeAll
-    public void setup() {
+    private void setup() {
         this.mockMvc = MockMvcBuilders.webAppContextSetup(this.wac).build();
     }
 
@@ -71,7 +75,7 @@ class AffiliationControllerTest {
     public void successfulAffiliationRequest() throws Exception {
         System.out.println("Executing test case for raising an affiliation request");
 
-        raiseAffiliationRequest(3l, 2l);
+        raiseAffiliationRequest(3L, 2L);
     }
 
     /**
@@ -96,7 +100,7 @@ class AffiliationControllerTest {
 
         affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
         MvcResult response = mockMvc.perform(post("/affiliate")
-                .header(HttpHeader.ORGANIZATION_ID, 2l)
+                .header(HttpHeader.ORGANIZATION_ID, 2L)
                 .content(gson.toJson(affiliationRequest))
                 .contentType("application/json"))
                 .andExpect(status().isOk())
@@ -119,7 +123,7 @@ class AffiliationControllerTest {
 
         affiliationRequest.setStatus(AffiliationStatus.ACTIVE_REQUEST);
         MvcResult response = mockMvc.perform(post("/affiliate")
-                .header(HttpHeader.ORGANIZATION_ID, 1l)
+                .header(HttpHeader.ORGANIZATION_ID, 1L)
                 .content(gson.toJson(affiliationRequest))
                 .contentType("application/json"))
                 .andExpect(status().is4xxClientError())
@@ -140,16 +144,7 @@ class AffiliationControllerTest {
     public void defaultOrganizationFilter() throws Exception {
         System.out.println("Test case for default filter on organizations within affiliation");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/organization/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&query=");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 2l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
+        this.filterExpectValues(2L, "/affiliate/organization/filter?", "page=0", "&offset=1", "&query=");
     }
 
     /**
@@ -161,16 +156,7 @@ class AffiliationControllerTest {
     public void defaultAffiliationFilter() throws Exception {
         System.out.println("Test case for default filter on affiliations");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&query=");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 2l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
+        this.filterExpectValues(2L, "/affiliate/filter?", "page=0", "&offset=1", "&query=");
     }
 
     /**
@@ -182,17 +168,8 @@ class AffiliationControllerTest {
     public void filterActiveAffiliations() throws Exception {
         System.out.println("Test case for filtering through active_affiliations");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
-
-        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 2l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath())
-                .andReturn();
+        MvcResult response = this.filterExpectValues(2L, "/affiliate/filter?", "page=0", "&offset=1", "&filterType" +
+                "=ACTIVE_REQUESTS");
 
         Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
         }.getType();
@@ -213,17 +190,8 @@ class AffiliationControllerTest {
         System.out.println("Test case for filtering through_affiliations with AFFILIATE status(Those organizations " +
                 "which are affiliated).");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=AFFILIATES");
-
-        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 2l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath())
-                .andReturn();
+        MvcResult response = this.filterExpectValues(2L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=AFFILIATES");
 
         Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
         }.getType();
@@ -243,17 +211,8 @@ class AffiliationControllerTest {
     public void filterActiveAffiliationOrganizations() throws Exception {
         System.out.println("Test case for filtering through active_affiliations");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/organization/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
-
-        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 2l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath())
-                .andReturn();
+        this.filterExpectValues(2L, "/affiliate/organization/filter?", "page=0", "&offset=1",
+                "&filterType=ACTIVE_REQUESTS");
 
     }
 
@@ -266,8 +225,8 @@ class AffiliationControllerTest {
     public void approveAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully approving an affiliation request.");
 
-        raiseAffiliationRequest(4l, 1l);
-        actionAffiliation("/affiliate/approve/4", 1l, AffiliationStatus.AFFILIATED);
+        raiseAffiliationRequest(4L, 1L);
+        actionAffiliation("/affiliate/approve/4", 1L, AffiliationStatus.AFFILIATED);
     }
 
     /**
@@ -279,7 +238,7 @@ class AffiliationControllerTest {
     public void approveAffiliationRequestFailure() throws Exception {
         System.out.println("Failure test case for successfully approving an affiliation request.");
 
-        actionAffiliationError("/affiliate/approve/5", 1l, AffiliationStatus.NONE);
+        actionAffiliationError("/affiliate/approve/5", 1L, AffiliationStatus.NONE);
     }
 
     /**
@@ -291,8 +250,8 @@ class AffiliationControllerTest {
     public void approveAffiliationRequestFailureSameOrg() throws Exception {
         System.out.println("Failure test case for same organization should not be able to approve affiliation request");
 
-        raiseAffiliationRequest(6l, 1l);
-        actionAffiliationError("/affiliate/approve/1", 6l, AffiliationStatus.ACTIVE_REQUEST);
+        raiseAffiliationRequest(6L, 1L);
+        actionAffiliationError("/affiliate/approve/1", 6L, AffiliationStatus.ACTIVE_REQUEST);
     }
 
     /**
@@ -304,8 +263,8 @@ class AffiliationControllerTest {
     public void rejectAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully rejecting an affiliation request.");
 
-        raiseAffiliationRequest(4l, 2l);
-        actionAffiliation("/affiliate/reject/4", 2l, AffiliationStatus.REJECTED);
+        raiseAffiliationRequest(4L, 2L);
+        actionAffiliation("/affiliate/reject/4", 2L, AffiliationStatus.REJECTED);
     }
 
     /**
@@ -317,7 +276,7 @@ class AffiliationControllerTest {
     public void rejectAffiliationRequestFailure() throws Exception {
         System.out.println("Failure test case for successfully approving an affiliation request.");
 
-        actionAffiliationError("/affiliate/reject/5", 2l, AffiliationStatus.NONE);
+        actionAffiliationError("/affiliate/reject/5", 2L, AffiliationStatus.NONE);
     }
 
     /**
@@ -329,8 +288,8 @@ class AffiliationControllerTest {
     public void rejectAffiliationRequestFailureSameOrg() throws Exception {
         System.out.println("Failure test case for same organization should not be able to reject affiliation request.");
 
-        raiseAffiliationRequest(6l, 2l);
-        actionAffiliationError("/affiliate/approve/2", 6l, AffiliationStatus.ACTIVE_REQUEST);
+        raiseAffiliationRequest(6L, 2L);
+        actionAffiliationError("/affiliate/approve/2", 6L, AffiliationStatus.ACTIVE_REQUEST);
     }
 
     /**
@@ -342,8 +301,13 @@ class AffiliationControllerTest {
     public void cancelAffiliationRequestSuccessful() throws Exception {
         System.out.println("Test case for successfully cancelling an affiliation request.");
 
-        raiseAffiliationRequest(4l, 3l);
-        actionAffiliation("/affiliate/cancel/3", 4l, AffiliationStatus.CANCELLED);
+        this.raiseAffiliationRequest(4L, 3L);
+        this.actionAffiliation("/affiliate/cancel/3", 4L, AffiliationStatus.CANCELLED);
+
+        this.filterExpectValues(4L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Maximilian Garner");
+        this.filterExpectValues(3L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=ACTIVE_REQUESTS", "&query=Yuliana Colon");
     }
 
     /**
@@ -355,7 +319,7 @@ class AffiliationControllerTest {
     public void cancelAffiliationRequestFailure() throws Exception {
         System.out.println("Failure test case for successfully approving an affiliation request.");
 
-        actionAffiliationError("/affiliate/cancel/5", 3l, AffiliationStatus.NONE);
+        this.actionAffiliationError("/affiliate/cancel/5", 3L, AffiliationStatus.NONE);
     }
 
     /**
@@ -367,12 +331,12 @@ class AffiliationControllerTest {
     public void cancelAffiliationRequestFailureOtherOrg() throws Exception {
         System.out.println("Failure test case for other organization should not be able to cancel affiliation request");
 
-        raiseAffiliationRequest(6l, 3l);
+        this.raiseAffiliationRequest(6L, 3L);
 
-        actionAffiliationError("/affiliate/approve/3", 6l, AffiliationStatus.ACTIVE_REQUEST);
+        this.actionAffiliationError("/affiliate/approve/3", 6L, AffiliationStatus.ACTIVE_REQUEST);
     }
 
-    public void raiseAffiliationRequest(Long affiliationFromId, Long affiliationWithId) throws Exception {
+    private void raiseAffiliationRequest(Long affiliationFromId, Long affiliationWithId) throws Exception {
         Affiliation affiliationRequest = new Affiliation();
 
         Organization affiliationWith = new Organization();
@@ -400,7 +364,7 @@ class AffiliationControllerTest {
         System.out.println("Affiliation Request raised successfully.");
     }
 
-    public Affiliation actionAffiliation(
+    private Affiliation actionAffiliation(
             String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
         MvcResult response = mockMvc.perform(post(url)
                 .header(HttpHeader.ORGANIZATION_ID, orgHeader))
@@ -415,11 +379,41 @@ class AffiliationControllerTest {
         return affiliation;
     }
 
-    public void actionAffiliationError(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
+    private void actionAffiliationError(String url, Long orgHeader, AffiliationStatus expectedStatus) throws Exception {
         MvcResult response = mockMvc.perform(post(url)
                 .header(HttpHeader.ORGANIZATION_ID, orgHeader))
                 .andExpect(status().is4xxClientError())
                 .andReturn();
+    }
+
+    private String filterURIBuilder(String... url) {
+        return this.encodeValue(Arrays.stream(url).collect(Collectors.joining()));
+    }
+
+    private MvcResult filterExpectBlank(Long orgId, String... url) throws Exception {
+        return mockMvc.perform(get(this.filterURIBuilder(url))
+                .header(HttpHeader.ORGANIZATION_ID, orgId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isEmpty())
+                .andReturn();
+    }
+
+    private MvcResult filterExpectValues(Long orgId, String... url) throws Exception {
+        return mockMvc.perform(get(this.filterURIBuilder(url))
+                .header(HttpHeader.ORGANIZATION_ID, orgId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").hasJsonPath())
+                .andReturn();
+    }
+
+    private String encodeValue(String value) {
+        try {
+            URI uri = new URI(null, null, value.substring(0, value.indexOf("?")),
+                    value.substring(value.indexOf("?") + 1), null);
+            return uri.toString();
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e.getCause());
+        }
     }
 
     /**
@@ -431,9 +425,9 @@ class AffiliationControllerTest {
     public void testRevokeAffiliationFrom() throws Exception {
         System.out.println("Test case for affiliation being revoked from the organization which has requested for " +
                 "affiliation.");
-        this.raiseAffiliationRequest(10l, 18l);
-        this.actionAffiliation("/affiliate/approve/10", 18l, AffiliationStatus.AFFILIATED);
-        this.actionAffiliation("/affiliate/revoke/18", 10l, AffiliationStatus.REVOKED_FROM);
+        this.raiseAffiliationRequest(10L, 18L);
+        this.actionAffiliation("/affiliate/approve/10", 18L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/18", 10L, AffiliationStatus.REVOKED_FROM);
     }
 
     /**
@@ -445,9 +439,9 @@ class AffiliationControllerTest {
     public void testRevokeAffiliationTo() throws Exception {
         System.out.println("Test case for affiliation being revoked from the organization which has been requested " +
                 "for affiliation.");
-        this.raiseAffiliationRequest(10l, 19l);
-        this.actionAffiliation("/affiliate/approve/10", 19l, AffiliationStatus.AFFILIATED);
-        this.actionAffiliation("/affiliate/revoke/10", 19l, AffiliationStatus.REVOKED_TO);
+        this.raiseAffiliationRequest(10L, 19L);
+        this.actionAffiliation("/affiliate/approve/10", 19L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/10", 19L, AffiliationStatus.REVOKED_TO);
     }
 
     /**
@@ -461,7 +455,7 @@ class AffiliationControllerTest {
                 "requested for affiliation.");
 
         mockMvc.perform(post("/affiliate/revoke/11")
-                .header(HttpHeader.ORGANIZATION_ID, 19l))
+                .header(HttpHeader.ORGANIZATION_ID, 19L))
                 .andExpect(status().is4xxClientError());
     }
 
@@ -478,35 +472,15 @@ class AffiliationControllerTest {
     public void testRevokeFrom() throws Exception {
         System.out.println("Test case for checking if organization which is revoked is visible in Unaffiliation " +
                 "organizations for organization which has revoked the affiliation");
-        this.raiseAffiliationRequest(10l, 20l);
-        this.actionAffiliation("/affiliate/approve/10", 20l, AffiliationStatus.AFFILIATED);
-        this.actionAffiliation("/affiliate/revoke/20", 10l, AffiliationStatus.REVOKED_FROM);
+        this.raiseAffiliationRequest(10L, 20L);
+        this.actionAffiliation("/affiliate/approve/10", 20L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/20", 10L, AffiliationStatus.REVOKED_FROM);
 
-        // Check if organization with id 20 is visible in unaffiliated list for organization 10
+        this.filterExpectValues(10L, "/affiliate/filter?", "page=0", "&offset=1", "&filterType=UNAFFILIATED",
+                "&query=LKQ");
 
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=UNAFFILIATED");
-        filterURIBuilder.append("&query=LKQ");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 10l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
-
-        filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
-        filterURIBuilder.append("&query=Ball");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 20l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
+        this.filterExpectValues(20L, "/affiliate/filter?", "page=0", "&offset=1", "&filterType=ACTIVE_REQUESTS",
+                "&query=Ball");
     }
 
     /**
@@ -522,35 +496,13 @@ class AffiliationControllerTest {
     public void testRevokeWith() throws Exception {
         System.out.println("Test case for checking if organization which is revoked is visible in Unaffiliation " +
                 "organizations for organization which has revoked the affiliation");
-        this.raiseAffiliationRequest(10l, 21l);
-        this.actionAffiliation("/affiliate/approve/10", 21l, AffiliationStatus.AFFILIATED);
-        this.actionAffiliation("/affiliate/revoke/10", 21l, AffiliationStatus.REVOKED_TO);
-
-        // Check if organization with id 21 is visible in unaffiliated list for organization 10
-
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=UNAFFILIATED");
-        filterURIBuilder.append("&query=Ball");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 21l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
-
-        filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=ACTIVE_REQUESTS");
-        filterURIBuilder.append("&query=J.M. Smucker");
-
-        mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, 10l))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath());
+        this.raiseAffiliationRequest(10L, 21L);
+        this.actionAffiliation("/affiliate/approve/10", 21L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/10", 21L, AffiliationStatus.REVOKED_TO);
+        this.filterExpectValues(21L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Ball");
+        this.filterExpectValues(10L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=ACTIVE_REQUESTS", "&query=J.M. Smucker");
     }
 
     /**
@@ -561,18 +513,10 @@ class AffiliationControllerTest {
     @Test
     public void orderByName() throws Exception {
         System.out.println("Executing test case for checking ascending order on organization name.");
-        StringBuilder filterURIBuilder = new StringBuilder();
-        filterURIBuilder.append("/affiliate/filter?");
-        filterURIBuilder.append("page=0");
-        filterURIBuilder.append("&offset=1");
-        filterURIBuilder.append("&filterType=UNAFFILIATED");
 
         final long organizationId = 10l;
-
-        MvcResult response = mockMvc.perform(get(filterURIBuilder.toString())
-                .header(HttpHeader.ORGANIZATION_ID, organizationId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").hasJsonPath()).andReturn();
+        MvcResult response = this.filterExpectValues(organizationId, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED");
 
         Type apiResultType = new TypeToken<PageResponse<Affiliation>>() {
         }.getType();
@@ -616,9 +560,9 @@ class AffiliationControllerTest {
     public void reraiseAffiliationCancelled() throws Exception {
         System.out.println("Reraise affiliation request after cancelled");
 
-        raiseAffiliationRequest(15l, 16l);
-        actionAffiliation("/affiliate/cancel/16", 15l, AffiliationStatus.CANCELLED);
-        raiseAffiliationRequest(15l, 16l);
+        this.raiseAffiliationRequest(15L, 16L);
+        this.actionAffiliation("/affiliate/cancel/16", 15L, AffiliationStatus.CANCELLED);
+        this.raiseAffiliationRequest(15L, 16L);
     }
 
     /**
@@ -633,9 +577,9 @@ class AffiliationControllerTest {
     public void reraiseAffiliationRejected() throws Exception {
         System.out.println("Reraise affiliation request after cancelled");
 
-        raiseAffiliationRequest(15l, 17l);
-        actionAffiliation("/affiliate/reject/15", 17l, AffiliationStatus.REJECTED);
-        raiseAffiliationRequest(17l, 15l);
+        this.raiseAffiliationRequest(15L, 17L);
+        this.actionAffiliation("/affiliate/reject/15", 17L, AffiliationStatus.REJECTED);
+        this.raiseAffiliationRequest(17L, 15L);
     }
 
     /**
@@ -650,10 +594,10 @@ class AffiliationControllerTest {
     public void reraiseAffiliationRevokeFrom() throws Exception {
         System.out.println("Reraise affiliation request after cancelled");
 
-        raiseAffiliationRequest(15l, 18l);
-        actionAffiliation("/affiliate/approve/15", 18l, AffiliationStatus.AFFILIATED);
-        actionAffiliation("/affiliate/revoke/18", 15l, AffiliationStatus.REVOKED_FROM);
-        raiseAffiliationRequest(15l, 18l);
+        this.raiseAffiliationRequest(15L, 18L);
+        this.actionAffiliation("/affiliate/approve/15", 18L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/18", 15L, AffiliationStatus.REVOKED_FROM);
+        this.raiseAffiliationRequest(15L, 18L);
     }
 
     /**
@@ -668,9 +612,53 @@ class AffiliationControllerTest {
     public void reraiseAffiliationRevokeTo() throws Exception {
         System.out.println("Reraise affiliation request after cancelled");
 
-        raiseAffiliationRequest(15l, 19l);
-        actionAffiliation("/affiliate/approve/15", 19l, AffiliationStatus.AFFILIATED);
-        actionAffiliation("/affiliate/revoke/15", 19l, AffiliationStatus.REVOKED_TO);
-        raiseAffiliationRequest(19l, 15l);
+        this.raiseAffiliationRequest(15L, 19L);
+        this.actionAffiliation("/affiliate/approve/15", 19L, AffiliationStatus.AFFILIATED);
+        this.actionAffiliation("/affiliate/revoke/15", 19L, AffiliationStatus.REVOKED_TO);
+        this.raiseAffiliationRequest(19L, 15L);
+    }
+
+    /**
+     * Affiliation Request is raised from OrganizationA to OrganizationB.
+     * This request is cancelled from OrganizationA.
+     * As a result of this OrganizationB can see this request in ActiveRequest section.
+     * OrganizationB can now choose to remove the affiliation from the ActiveRequest section.
+     * After removing the affiliation request, both organizations can see each other in the unaffiliated list.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void removeAffiliationCancelled() throws Exception {
+        System.out.println("Test case for checking remove affiliation after an affiliation request is cancelled");
+
+        this.raiseAffiliationRequest(16L, 17L);
+        this.actionAffiliation("/affiliate/cancel/17", 16L, AffiliationStatus.CANCELLED);
+        this.actionAffiliation("/affiliate/remove/16", 17L, AffiliationStatus.REMOVED);
+        this.filterExpectValues(16L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Gabriel Mccormick");
+        this.filterExpectValues(17L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Jayda Stanton");
+    }
+
+    /**
+     * Affiliation Request is raised from OrganizationA to OrganizationB.
+     * This request is rejected from OrganizationB.
+     * As a result of this OrganizationA can see this request in ActiveRequest section.
+     * OrganizationA can now choose to remove the affiliation from the ActiveRequest section.
+     * After removing the affiliation request, both organizations can see each other in the unaffiliated list.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void removeAffiliationRejected() throws Exception {
+        System.out.println("Test case for checking remove affiliation after an affiliation request is cancelled");
+
+        this.raiseAffiliationRequest(16L, 18L);
+        this.actionAffiliation("/affiliate/reject/16", 18L, AffiliationStatus.REJECTED);
+        this.actionAffiliation("/affiliate/remove/18", 16L, AffiliationStatus.REMOVED);
+        this.filterExpectValues(16L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Yasmine Villarreal");
+        this.filterExpectValues(18L, "/affiliate/filter?", "page=0", "&offset=1",
+                "&filterType=UNAFFILIATED", "&query=Jayda Stanton");
     }
 }

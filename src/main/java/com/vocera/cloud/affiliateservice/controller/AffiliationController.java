@@ -217,4 +217,20 @@ public class AffiliationController {
         return new ResponseEntity<>(this.affiliateService.revokeAffiliation(organizationId, affiliateWith),
                 HttpStatus.OK);
     }
+
+    /**
+     * Remove an affiliation.
+     *
+     * @param organizationId
+     * @param affiliateWith
+     * @return
+     */
+    @PostMapping("/remove/{organizationId}")
+    public ResponseEntity<Affiliation> removeAffiliation(
+            @RequestHeader(HttpHeader.ORGANIZATION_ID) Long organizationId,
+            @PathVariable("organizationId") Long affiliateWith) {
+        LOGGER.info("Remove affiliation request called on {} by {}", affiliateWith, organizationId);
+        return new ResponseEntity<>(this.affiliateService.removeAffiliation(organizationId, affiliateWith),
+                HttpStatus.OK);
+    }
 }
