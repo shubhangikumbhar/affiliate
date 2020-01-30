@@ -1,2 +1,2 @@
 language: java
-script: gradle clean install
+script: gradle
