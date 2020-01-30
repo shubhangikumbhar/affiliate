@@ -1,4 +1,9 @@
 language: java
-jdk: openjdk11
-before_script: chmod a+x gradlew
-script: ./gradlew build
+
+before_install: 
+  - chmod a+x gradlew
+
+jdk: 
+  - openjdk11
+
+script: gradle
