@@ -5,3 +5,5 @@ before_install:
 
 jdk: 
   - openjdk11
+
+script: gradle wrapper 
