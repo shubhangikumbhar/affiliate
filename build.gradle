@@ -3,9 +3,6 @@ plugins {
     id 'java'
     id 'maven'
 }
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.0'
-}
 
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'maven'
@@ -46,8 +43,4 @@ dependencies {
 
     // H2
     testImplementation 'com.h2database:h2:1.4.199'
-}
-
-test {
-    useJUnitPlatform ()
 }

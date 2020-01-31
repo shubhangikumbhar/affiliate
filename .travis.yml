@@ -1,3 +1,5 @@
+install: gradle wrapper --gradle-version 4.2
+
 language: java
 
 before_script: 
@@ -6,4 +8,4 @@ before_script:
 jdk: 
   - openjdk11
 
-script: gradle build 
+script: gradle clean build 
